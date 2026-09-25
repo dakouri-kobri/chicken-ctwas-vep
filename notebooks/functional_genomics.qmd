@@ -4,4 +4,30 @@ format: html
 editor: visual
 ---
 
-## 
+## 1. Load libraries
+
+```{r}
+#| label: load-libraries
+
+library(data.table)
+library(susieR)
+```
+
+## 2. Load data
+
+```{r}
+#| label: load-data
+
+expr_dt <- fread("data/student_trial_expression.txt")
+pheno_dt <- fread("data/phenotypes-20260429.txt")
+geno_dt <- fread("data/student_trial_genotypes.txt")
+gemma_gwas_dt <- fread("data/student_trial_gemma.txt")
+eqtl_dt <- fread("data/student_trial_eqtl.txt")
+
+stopifnot(
+  identical(
+    names(expr_dt)[-1],
+    names(geno_dt)[-1]
+  )
+)
+```
