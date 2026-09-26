@@ -115,8 +115,7 @@ The expression and genotype tables each contain 375 samples. All 375 full sample
 #' Calculate a Wald-style z-score (Beta / SE) for each SNP-trait 
 #' association and keep the columns needed for downstream analysis.
 #'
-#' @params gemma_dt A data frame or data.table containing SNP_ID, 
-#'   Trait, Beta, and SE columns.
+#' @param gemma_dt A data frame or data.table containing SNP_ID, Trait, Beta, and SE columns.
 #' @return  A data.table with columns id, Trait, Beta, SE, and z.
 #'   Rows with missing z-scores are removed.
 prep_gemma_zscores <- function(gemma_dt){
@@ -149,3 +148,25 @@ head(gwas_zscore, 10)
 **Observations**
 
 The GEMMA results were reduced to SNP ID, trait, effect estimate, standard error, and z-score. The z-score preserves the direction of the estimated effect and expresses its size relative to its standard error. The first ten rows include both positive and negative associations.
+
+## 5. Define the locus fine-mapping function
+
+### 5.1 Define helpers for the locus fine-mapping function
+
+```{r}
+#| label: helper-select-locus-genotypes
+
+#' Select genotype rows within a genomic window
+#' 
+#' @param geno_dt Genotype data.table with SNP identifiers in the SNP column.
+#' @param chr Chromosome identifier.
+#' @param start_pos,end_pos Inclusive genomic window boundaries.
+#' @return A data.table of SNPs in the window, with an added pos column.
+select_locus_genotypes <- function(
+    geno_dt, chr, start_pos, end_pos
+){
+  locus_dt <- geno_dt[grepl(paste0("^0?", chr, ":"), SNP)]
+  locus_dt[, pos := as.numeric(tstrsplit(SNP, ":")[[2]])]
+  locus_dt[pos >= start_pos & pos <= end_pos]
+}
+```
