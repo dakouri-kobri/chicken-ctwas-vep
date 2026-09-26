@@ -361,3 +361,30 @@ assemble_joint_inputs <- function(gene_entries, ld_snps, z_sub){
   list(z = z_joint, R = ld_joint, type = type)
 }
 ```
+
+```{r}
+#| label: helper-make-locus-prior-weights
+
+#' Assign optional SNP and gene group prior weights
+#'
+#' @param type Named vector labeling each entry SNP or Gene.
+#' @param group_prior_weights NULL for SuSiE's default uniform prior,
+#'   or a named vector with SNP and Gene weights.
+#' @return NULL or one prior weight per entry.
+make_locus_prior_weights <- function(type, group_prior_weights = NULL){
+  if (is.null(group_prior_weights)){
+    return(NULL)
+  }
+  
+  if (!all(c("SNP", "Gene") %in% names(group_prior_weights))){
+    stop("group_prior_weights must have SNP and Gene entries.")
+  }
+  
+  weights <- ifelse(
+    type == "Gene",
+    group_prior_weights["Gene"],
+    group_prior_weights["SNP"]
+  )
+  setNames(as.numeric(weights), names(type))
+}
+```
