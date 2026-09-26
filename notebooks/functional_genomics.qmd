@@ -306,3 +306,58 @@ build_gene_entry <- function(
   )
 }
 ```
+
+```{r}
+#| label: helper-assemble-joint-inputs
+
+#' Assemble SNP and gene signals for joint fine-mapping
+#'
+#' @param gene_entries Named list of outputs from build_gene_entry().
+#' @param ld_snps SNP correlation matrix for the locus.
+#' @param z_sub GWAS z-scores for the selected trait.
+#' @return A list with joint z-scores, joint correlation matrix,
+#'   and a SNP/Gene type label for each entry.
+assemble_joint_inputs <- function(gene_entries, ld_snps, z_sub){
+  all_snps <- Reduce(
+    union,
+    lapply(gene_entries, function(entry) entry$common_snps)
+  )
+  gene_names <- names(gene_entries)
+  
+  base_ld <- ld_snps[all_snps, all_snps, drop = FALSE]
+  base_z <- z_sub[match(all_snps, id), z]
+  names(base_z) <- all_snps
+  
+  n_snps <- length(all_snps)
+  n_genes <- length(gene_names)
+  
+  ld_joint <- rbind(
+    cbind(base_ld, matrix(0, n_snps, n_genes)),
+    cbind(matrix(0, n_genes, n_snps), diag(n_genes))
+  )
+  rownames(ld_joint) <- colnames(ld_joint) <- c(all_snps, gene_names)
+  
+  for (gene in gene_names){
+    entry <- gene_entries[[gene]]
+    correlations <- setNames(rep(0, n_snps), all_snps)
+    correlations[entry$common_snps] <- entry$gene_ld_col
+    
+    ld_joint[all_snps, gene] <- correlations
+    ld_joint[gene, all_snps] <- correlations
+  }
+  
+  gene_z <- vapply(
+    gene_entries, 
+    function(entry) entry$gene_z, 
+    numeric(1)
+  )
+  z_joint <- c(base_z, gene_z)
+  
+  type <- setNames(
+    c(rep("SNP", n_snps), rep("Gene", n_genes)),
+    names(z_joint)
+  )
+  
+  list(z = z_joint, R = ld_joint, type = type)
+}
+```
