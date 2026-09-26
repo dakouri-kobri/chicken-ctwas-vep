@@ -225,3 +225,84 @@ align_locus_samples <- function(
   list(X = X, expr_cols = expr_cols, idx_expr = idx_expr)
 }
 ```
+
+```{r}
+#| label: helper-build-gene-entry
+
+#' Construct a gene's predicted-expression signal
+#'
+#' Fit a separate expression-on-genotype regression for each SNP.
+#' Combine its weights with GWAS z-scores and the locus LD matrix
+#' to obtain one gene-level pseudo-SNP signal.
+#'
+#' @param gene Candidate gene ID.
+#' @param expr_dt Expression data.table with IDs in the ID column.
+#' @param aligned Output from align_locus_samples().
+#' @param ld_snps SNP correlation matrix for the locus.
+#' @param z_sub GWAS z-score rows for the selected trait.
+#' @return A list containing the SNP IDs, gene z-score, and
+#'   gene–SNP correlations; NULL if this gene cannot be modeled.
+build_gene_entry <- function(
+    gene, expr_dt, aligned, ld_snps, z_sub
+) {
+  gene_row <- expr_dt[ID %in% gene]
+  
+  if (nrow(gene_row) == 0){
+    message(sprintf(" [skip] %s not found in expression matrix.", gene))
+    return(NULL)
+  }
+  
+  y <- as.numeric(gene_row[1, ..aligned$expr_cols])[aligned$idx_expr]
+  valid <- complete.cases(y, aligned$X)
+  
+  X_gene <- aligned$X[valide, , drop =FALSE]
+  y_gene <- y[valid]
+  
+  
+  if (ncol(X_gene) < 2){
+    message(sprintf(" [skip] %s: too few complete samples.", gene))
+    return(NULL)
+  }
+  
+  snp_variance <- apply(X_gene, 2, var, na.rm = TRUE)
+  X_gene <- X_gene[
+    ,
+    !is.na(snp_variance) & snp_variance > 0,
+    drop = FALSE
+  ]
+  
+  if (ncol(X_gene) < 2){
+    message(sprintf(" [skip] %s: fewer than two variable SNPs.", gene))
+    return(NULL)
+  }
+  
+  weights <- apply(
+    X_gene, 2,
+    function(snp) coef(lm(y_gene ~ snp))[2]
+  )
+  weights[is.na(weights)] <- 0
+  
+  common_snps <- intersect(colnames(X_gene), z_sub$id)
+  
+  if (length(common_snps) < 2){
+    message(sprintf(" [skip] %s: fewer than two SNPs overlap GWAS.", gene))
+    return(NULL)
+  }
+  
+  ld_gene <- ld_snps[common_snps, common_snps, drop = FALSE]
+  w <- weights[common_snps]
+  denominator <- sqrt(as.numeric(t(w) %*% ld_gene %*% w))
+  
+  if (!is.finite(denominator) || denominator == 0){
+    message(sprintf(" [skip] %s: degenerate weight normalization.", gene))
+  }
+  
+  z_snps <- z_sub[match(common_snps, id), z]
+  
+  list(
+    common_snps = common_snps,
+    gene_z = sum(w *z_snps) / denominator,
+    gene_ld_col = as.vector(ld_gene %*% w) / denominator
+  )
+}
+```
