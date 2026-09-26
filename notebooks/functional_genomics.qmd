@@ -102,3 +102,50 @@ sample_check
 
 **Observations**\
 The expression and genotype tables each contain 375 samples. All 375 full sample IDs match, and the samples appear in the same column order, so these tables are aligned for the analysis. The GWAS and eQTL tables contain 292 and 11 records, respectively.
+
+## 4. Prepare GWAS summary statistics
+
+### 4.1 Define a helper function `prep_gemma_zscores()`
+
+```{r}
+#| label: helper-function-prep-gemma-zscores
+
+#' Prepare GEMMA GWAS z-scores
+#' 
+#' Calculate a Wald-style z-score (Beta / SE) for each SNP-trait 
+#' association and keep the columns needed for downstream analysis.
+#'
+#' @params gemma_dt A data frame or data.table containing SNP_ID, 
+#'   Trait, Beta, and SE columns.
+#' @return  A data.table with columns id, Trait, Beta, SE, and z.
+#'   Rows with missing z-scores are removed.
+prep_gemma_zscores <- function(gemma_dt){
+  gwas_dt <- copy(as.data.table(gemma_dt))
+  gwas_dt[, z := Beta / SE]
+  
+  gwas_dt[
+    , 
+    .(
+      id = SNP_ID, 
+      Trait = Trait,
+      Beta = Beta,
+      SE = SE,
+      z = z
+    )
+  ][!is.na(z)]
+}
+```
+
+### 4.2 Inpect the resulting z-scores
+
+```{r}
+#| label: inspect-zscores
+
+gwas_zscore <- prep_gemma_zscores(gemma_gwas_dt)
+
+head(gwas_zscore, 10)
+```
+
+**Observations**
+
+The GEMMA results were reduced to SNP ID, trait, effect estimate, standard error, and z-score. The z-score preserves the direction of the estimated effect and expresses its size relative to its standard error. The first ten rows include both positive and negative associations.
