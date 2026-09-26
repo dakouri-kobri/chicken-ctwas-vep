@@ -23,11 +23,82 @@ pheno_dt <- fread("data/phenotypes-20260429.txt")
 geno_dt <- fread("data/student_trial_genotypes.txt")
 gemma_gwas_dt <- fread("data/student_trial_gemma.txt")
 eqtl_dt <- fread("data/student_trial_eqtl.txt")
+```
 
-stopifnot(
-  identical(
-    names(expr_dt)[-1],
-    names(geno_dt)[-1]
+## 3. Inspect and validate the input data
+
+### 3.1 Table dimensions and column names
+
+```{r}
+#| label: inspect-inputs
+
+input_summary <- data.table(
+  dataset = c("Expression", "Phenotypes", "Genotypes", "GWAS", "eQTL"),
+  rows = c(
+    nrow(expr_dt), 
+    nrow(pheno_dt), 
+    nrow(geno_dt), 
+    nrow(gemma_gwas_dt),
+    nrow(eqtl_dt)
+  ),
+  columns = c(
+    ncol(expr_dt),
+    ncol(pheno_dt), 
+    ncol(geno_dt), 
+    ncol(gemma_gwas_dt),
+    ncol(eqtl_dt)    
   )
 )
+
+print(input_summary)
+
+cat("\nGWAS colums:\n")
+print(names(gemma_gwas_dt))
+
+cat("\neQTL colums:\n")
+print(names(eqtl_dt))
 ```
+
+### 3.2 Match genotype and expression sample IDs
+
+```{r}
+#| label: validate-sample-ids
+
+expression_samples <- names(expr_dt)[-1]
+genotype_samples <- names(geno_dt)[-1]
+
+stopifnot(
+  !anyDuplicated(expression_samples),
+  !anyDuplicated(genotype_samples)
+)
+
+sample_check <- data.table(
+  check = c(
+    "Expression samples",
+    "Genotype samples",
+    "Shared full sample IDs",
+    "Same columns in the same order"
+  ),
+  value = c(
+    length(expression_samples),
+    length(genotype_samples),
+    length(
+      intersect(
+        expression_samples,
+        genotype_samples
+      )
+    ),
+    as.character(
+      identical(
+        expression_samples,
+        genotype_samples
+      )
+    )
+  )
+)
+
+sample_check
+```
+
+**Observations**\
+The expression and genotype tables each contain 375 samples. All 375 full sample IDs match, and the samples appear in the same column order, so these tables are aligned for the analysis. The GWAS and eQTL tables contain 292 and 11 records, respectively.
