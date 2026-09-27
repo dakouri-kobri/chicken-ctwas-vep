@@ -620,3 +620,28 @@ loci_table <- list(
 
 data.table::rbindlist(lapply(loci_table, as.data.table))
 ```
+
+### 6.3 Check phenotype availability for selected traits
+
+```{r}
+#| label: inspect-trait-sample-counts
+
+traits_to_check <- unique(c(
+  "X_MIDDLE_FG_2",
+  vapply(loci_table, `[[`, character(1), "trait")
+))
+
+data.table::rbindlist(lapply(traits_to_check, function(trait) {
+  data.table(
+    Trait = trait,
+    nonmissing_phenotypes_with_genotypes = sum(
+      pheno_dt$ID %in% genotype_samples &
+        !is.na(pheno_dt[[trait]])
+    )
+  )
+}))
+```
+
+**Observations**
+
+Although genotype and expression data are available for 375 matching individuals, only 59, 22, and 23 of them have recorded values for the three traits checked here. These counts do not establish the exact sample sizes used in the original GEMMA analyses. Therefore, the `n = 375` values specified using the lab's genotype-count instruction are working assumptions, and the resulting PIPs is to be interpreted with that limitation.
