@@ -645,3 +645,66 @@ data.table::rbindlist(lapply(traits_to_check, function(trait) {
 **Observations**
 
 Although genotype and expression data are available for 375 matching individuals, only 59, 22, and 23 of them have recorded values for the three traits checked here. These counts do not establish the exact sample sizes used in the original GEMMA analyses. Therefore, the `n = 375` values specified using the lab's genotype-count instruction are working assumptions, and the resulting PIPs is to be interpreted with that limitation.
+
+## 7. Pass 1 — Fine-map with uniform priors
+
+Running every locus once, with `group_prior_weights = NULL`
+
+```{r}
+#| label: run-pass1-uniform-priors
+
+pass1_by_locus <- lapply(seq_along(loci_table), function(i) {
+  locus <- loci_table[[i]]
+  
+  run_ctwas_locus_region(
+    target_trait = locus$trait,
+    target_genes = locus$genes,
+    chr = locus$chr,
+    start_pos = locus$start,
+    end_pos = locus$end,
+    gwas_zscore = gwas_zscore,
+    geno_dt = geno_dt,
+    expr_dt = expr_dt,
+    n_gwas_samples = locus$n,
+    group_prior_weights = NULL
+  )
+})
+
+failed_loci <- which(
+  vapply(pass1_by_locus, is.null, logical(1))
+)
+
+if (length(failed_loci) > 0) {
+  stop(
+    "No results for loci_table entries: ",
+    paste(failed_loci, collapse = ", ")
+  )
+}
+
+pass1_results <- data.table::rbindlist(pass1_by_locus)
+```
+
+```{r}
+#| label: inspect-pass1-results
+
+pass1_results[
+  ,
+  .(
+    SNPs = sum(Type == "SNP"),
+    Genes = sum(Type == "Gene"),
+    top_ID = ID[which.max(PIP)],
+    top_Type = Type[which.max(PIP)],
+    top_PIP = max(PIP)
+  ),
+  by = .(Trait, Locus_Chr, Locus_Start, Locus_End)
+]
+
+pass1_results[
+  Type == "Gene",
+  .(Trait, Locus_Chr, Locus_Start, Locus_End, ID, PIP)
+]
+```
+
+**Observations**
+
+Pass 1 produced SNP and gene PIPs for all four selected loci using uniform priors. A gene had the highest PIP in two loci, although neither gene PIP exceeded 0.37. A SNP had the highest PIP in the other two loci, with PIPs of approximately 0.993 and 1.000. These are preliminary results because the GWAS sample size supplied to the model remains unverified.
