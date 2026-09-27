@@ -428,7 +428,7 @@ run_ctwas_locus_region <- function(
   
   z_sub <- gwas_zscore[Trait == target_trait]
   locus_geno <- select_locus_genotypes(
-    geno_dt, start_pos, end_pos
+    geno_dt, chr, start_pos, end_pos
   )
   
   if (nrow(locus_geno) < 2) {
