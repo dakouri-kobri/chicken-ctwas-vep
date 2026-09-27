@@ -512,3 +512,78 @@ trial_result
 **Observation**
 
 The trial run returned PIPs for nine SNPs and one candidate gene in the selected locus. Several SNPs received high PIPs, whereas ALS2CL received a PIP of 0.065. The function therefore produces the expected output structure; these results will be interpreted alongside the remaining loci and the second pass.
+
+## 6. Choose the loci and candidate genes
+
+### 6.1 Identify GWAS regions and candidate genes
+
+Inspect GWAS regions and eQTL evidence
+
+```{r}
+#| label: inspect-gwas-regions-candidate
+
+# GWAS SNPs grouped by trait and sweep region
+gwas_regions <- gemma_gwas_dt[
+  ,
+  .(
+    gwas_snps = .N,
+    start = min(Position),
+    end = max(Position),
+    host_genes = paste(
+      unique(
+        na.omit(SNP_HostGeneEnsemblID),
+      ),
+      collapse = ", "
+    )
+  ),
+  by = .(Trait, Chromosome, PopSweepRegionID)
+][
+  order(Trait, Chromosome, start)
+]
+
+gwas_regions
+```
+
+```{r}
+#| Label: eqtl-candidates
+#| 
+# eQTL genes
+eqtl_candidates <- eqtl_dt[
+  gene %in% expr_dt$ID,
+  .(
+    gene,
+    SNP,
+    FDR,
+    peak_type,
+    sweep_region_ids
+  )
+]
+
+eqtl_candidates
+```
+
+**Observations**
+
+GWAS data produce 57 trait–region combinations. The eQTL check finds four significant genes, that also have expression data: `ENSGALG00010008087`, `ENSGALG00010009173`, `ENSGALG00010011018`, and `ENSGALG00010021786`. All four eQTL entries are labeled *cis*. The table will be narrowed before choosing loci. Several combinations contain only one reported GWAS SNP, so locus selection must also check that enough SNPs are available for fine-mapping.
+
+**Narrow GWAS regions**
+
+```{r}
+#| label: narrow-table-for-loci-selection
+
+gwas_regions_narrowed <- gwas_regions[
+  PopSweepRegionID %in% eqtl_candidates$sweep_region_ids
+  & gwas_snps >= 2,
+  .(
+    Trait,
+    Chromosome,
+    PopSweepRegionID,
+    gwas_snps,
+    start,
+    end,
+    host_genes
+  )
+]
+
+gwas_regions_narrowed
+```
