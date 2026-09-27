@@ -587,3 +587,36 @@ gwas_regions_narrowed <- gwas_regions[
 
 gwas_regions_narrowed
 ```
+
+### 6.2 Define `loci_table`
+
+Four distinct sweep regions were selected. Each has a candidate gene measured in the expression data with cis-eQTL evidence, and the selected trait has at least two reported GWAS SNPs. The fine-mapping function will check whether sufficient variable genotype SNPs also overlap the GWAS results. The following starts and ends are guided by the lab's requested first and last GWAS SNP in the sweep.
+
+```{r}
+#| label: define-loci-table
+
+loci_table <- list(
+  list(
+    trait = "MEANXOTHER_D", chr = "1",
+    start = 15702813, end = 15709825,
+    genes = c("ENSGALG00010008087"), n = 375
+  ),
+  list(
+    trait = "LN_MEANXSAME_A", chr = "1",
+    start = 76741609, end = 76750239,
+    genes = c("ENSGALG00010021786"), n = 375
+  ),
+  list(
+    trait = "MEANXOTHER_D", chr = "4",
+    start = 75520158, end = 75528418,
+    genes = c("ENSGALG00010011018"), n = 375
+  ),
+  list(
+    trait = "MEANXOTHER_D", chr = "4",
+    start = 78060499, end = 78068142,
+    genes = c("ENSGALG00010009173"), n = 375
+  )
+)
+
+data.table::rbindlist(lapply(loci_table, as.data.table))
+```
