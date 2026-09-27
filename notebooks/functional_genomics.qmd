@@ -483,7 +483,5 @@ run_ctwas_locus_region <- function(
     Type = joint$type[names(joint$z)],
     PIP = fit$pip
   )
-  
-  results[order(-PIP)]
 }
 ```
