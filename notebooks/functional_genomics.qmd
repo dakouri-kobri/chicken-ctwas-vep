@@ -176,49 +176,41 @@ select_locus_genotypes <- function(
 
 #' Align genotype rows with expression samples
 #'
-#' Sample names are matched after removing nonnumeric characters,
-#' following the convention used in the original practical script.
+#' Match complete sample IDs and construct a sample-by-SNP matrix.
 #'
 #' @param locus_geno_dt Genotype rows selected for one locus.
-#' @param geno_dt Full genotype table, used to identify sample columns.
+#' @param geno_dt Full genotype table.
 #' @param expr_dt Expression table with gene IDs in the ID column.
-#' @return A list containing the sample-by-SNP genotype matrix,
-#'   expression sample columns, and their matching row indices.
-#'   Returns NULL if fewer than two variable SNPs remain.
-align_locus_samples <- function(
-    locus_geno_dt, geno_dt, expr_dt
-){
+#' @return A list containing X, expr_cols, and idx_expr; NULL if fewer
+#'   than two matching samples or variable SNPs remain.
+align_locus_samples <- function(locus_geno_dt, geno_dt, expr_dt) {
   expr_cols <- setdiff(names(expr_dt), "ID")
   geno_cols <- setdiff(names(geno_dt), c("SNP", "pos"))
   
-  expr_ids <- gsub("^[0-9]", "", expr_cols)
-  geno_ids <- gsub("^[0-9]", "", geno_cols)
-  common_ids <- intersect(expr_ids, geno_ids)
+  if (anyDuplicated(expr_cols) || anyDuplicated(geno_cols)) {
+    stop("Sample column names must be unique.")
+  }
   
-  if (length(common_ids) < 2){
+  common_samples <- expr_cols[expr_cols %in% geno_cols]
+  
+  if (length(common_samples) < 2) {
     message("Fewer than two matching expression/genotype samples.")
     return(NULL)
   }
   
-  idx_expr <- match(common_ids, expr_ids)
-  idx_geno <- match(common_ids, geno_ids)
+  idx_expr <- match(common_samples, expr_cols)
+  idx_geno <- match(common_samples, geno_cols)
   
-  X <- t(as.matrix(
-    locus_geno_dt[, ..geno_cols]
-  ))[
+  X <- t(as.matrix(locus_geno_dt[, ..geno_cols]))[
     idx_geno, , drop = FALSE
   ]
   colnames(X) <- locus_geno_dt$SNP
   
   snp_variance <- apply(X, 2, var, na.rm = TRUE)
-  X <- X[
-    ,
-    !is.na(snp_variance) & snp_variance > 0,
-    drop =TRUE
-  ]
+  X <- X[, is.finite(snp_variance) & snp_variance > 0, drop = FALSE]
   
   if (ncol(X) < 2) {
-    message("Fewer than two variables SNPs remain.")
+    message("Fewer than two variable SNPs remain.")
     return(NULL)
   }
   
