@@ -388,3 +388,106 @@ make_locus_prior_weights <- function(type, group_prior_weights = NULL){
   setNames(as.numeric(weights), names(type))
 }
 ```
+
+### 5.2 Define the helper `run_ctwas_locus_region`
+
+```{r}
+#| label: helper-run-ctwas-locus-region 
+
+#' Fine-map one behavioral trait at one candidate locus
+#'
+#' Coordinate SNP selection, sample alignment, gene signal construction,
+#' and a joint SuSiE RSS fit.
+#'
+#' @param target_trait Behavioral trait name in gwas_zscore.
+#' @param target_genes Character vector of candidate gene IDs.
+#' @param chr Chromosome identifier.
+#' @param start_pos,end_pos Inclusive genomic window boundaries.
+#' @param gwas_zscore Prepared GWAS table from prep_gemma_zscores().
+#' @param geno_dt Genotype data.table.
+#' @param expr_dt Expression data.table.
+#' @param n_gwas_samples GWAS sample size passed to susie_rss().
+#' @param group_prior_weights NULL for uniform priors, or a named
+#'   vector containing SNP and Gene weights.
+#' @return A data.table of SNP and gene PIPs, ordered from highest
+#'   to lowest; NULL if the locus cannot be analyzed.
+run_ctwas_locus_region <- function(
+    target_trait,
+    target_genes,
+    chr,
+    start_pos,
+    end_pos,
+    gwas_zscore,
+    geno_dt,
+    expr_dt,
+    n_gwas_samples = 500,
+    group_prior_weights = NULL
+){
+  message(
+    sprintf(
+      "--> Fine-mapping Chr %s:%s-%s for %s",
+      chr,
+      start_pos,
+      end_pos,
+      paste(target_genes, collapse = ", ")
+    )
+  )
+  
+  z_sub <- gwas_zscore[Trait == target_trait]
+  locus_geno <- select_locus_genotypes(
+    geno_dt, start_pos, end_pos
+  )
+  
+  if (nrow(locus_geno) < 2) {
+    message("Not enough SNPs in the physical window.")
+    return(NULL)
+  }
+  
+  aligned <- align_locus_samples(locus_geno, geno_dt, expr_dt)
+  if (is.null(aligned)) return(NULL)
+  
+  ld_snps <- cor(aligned$X, use = "pairwise.complete.obs")
+  
+  gene_entries <- lapply(
+    target_genes,
+    build_gene_entry,
+    expr_dt = expr_dt,
+    aligned = aligned,
+    ld_snps = ld_snps,
+    z_sub = z_sub
+  )
+  names(gene_entries) <- target_genes
+  gene_entries <- Filter(Negate(is.null), gene_entries)
+  
+  if (length(gene_entries) == 0) {
+    message("No candidate gene produced a suitable usable weight model.")
+    return(NULL)
+  }
+  
+  joint <- assemble_joint_inputs(gene_entries, ld_snps, z_sub)
+  priors <- make_locus_prior_weights(
+    joint$type, group_prior_weights
+  )
+  
+  fit <- susieR::susie_rss(
+    z = joint$z,
+    R = joint$R,
+    n = n_gwas_samples,
+    L = min(5, length(joint$z)),
+    prior_weights = priors,
+    check_R = FALSE
+  )
+  
+  results <- date.table(
+    locus_Chr = chr,
+    Locus_Start = start_pos,
+    Locus_End = end_pos,
+    Trait = target_trait,
+    ID = names(joint$z),
+    Type = joint$type[names(joint$z)],
+    PIP = fit$pip
+  )
+  
+  results[order(-PIP)]
+}
+```
