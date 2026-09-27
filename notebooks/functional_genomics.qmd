@@ -474,7 +474,7 @@ run_ctwas_locus_region <- function(
     check_R = FALSE
   )
   
-  results <- date.table(
+  results <- data.table(
     locus_Chr = chr,
     Locus_Start = start_pos,
     Locus_End = end_pos,
