@@ -801,3 +801,58 @@ pass2_results[
 **Observations**
 
 Pass 2 completed for all four selected loci using the group weights estimated in Section 8. Each locus retained one candidate gene. A gene had the highest PIP in two loci, while a SNP had the highest PIP in the other two. These PIPs remain preliminary because the GWAS sample size used in the analysis has not been verified.
+
+## 10. Compare pass 1 and pass 2
+
+### 10.1 PIP comparison table
+
+```{r}
+#| label: compare-pass-pips
+
+entry_cols <- c(
+  "Trait", "Locus_Chr", "Locus_Start", "Locus_End", "Type", "ID"
+)
+
+# Check that each entry appears once in each pass.
+stopifnot(
+  !anyDuplicated(pass1_results[, ..entry_cols]),
+  !anyDuplicated(pass2_results[, ..entry_cols])
+)
+
+pip_comparison <- merge(
+  pass1_results[, c(entry_cols, "PIP"), with = FALSE],
+  pass2_results[, c(entry_cols, "PIP"), with = FALSE],
+  by = entry_cols,
+  suffixes = c("_pass1", "_pass2")
+)
+
+# A missing match would make this comparison incomplete.
+stopifnot(
+  nrow(pip_comparison) == nrow(pass1_results),
+  nrow(pip_comparison) == nrow(pass2_results)
+)
+
+pip_comparison[, delta_PIP := PIP_pass2 - PIP_pass1]
+
+# Entries with the largest absolute changes.
+head(
+  pip_comparison[order(-abs(delta_PIP))],
+  12
+)
+```
+
+```{r}
+#| label: compare-gene-pips
+
+pip_comparison[
+  Type == "Gene",
+  .(
+    Trait, Locus_Chr, Locus_Start, Locus_End, ID,
+    PIP_pass1, PIP_pass2, delta_PIP
+  )
+][order(Locus_Chr, Locus_Start)]
+```
+
+### 10.2 Question 1: What changed?
+
+After applying the empirical group weights, the PIP increased for each of the four candidate genes by 0.0061–0.0188. Several SNP PIPs decreased slightly. The leading entry did not change in any of the four loci: ENSGALG00010008087 and ENSGALG00010011018 remained the leading genes in their respective loci, while 1:76750239 and 4:78065006 remained the leading SNPs in theirs. Because the weights were estimated from pass 1 using these same loci, the increases in gene PIP are a consequence of the prior adjustment, not independent evidence for the genes.
