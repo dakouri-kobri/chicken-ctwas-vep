@@ -475,7 +475,7 @@ run_ctwas_locus_region <- function(
   )
   
   results <- data.table(
-    locus_Chr = chr,
+    Locus_Chr = chr,
     Locus_Start = start_pos,
     Locus_End = end_pos,
     Trait = target_trait,
@@ -483,5 +483,7 @@ run_ctwas_locus_region <- function(
     Type = joint$type[names(joint$z)],
     PIP = fit$pip
   )
+  
+  results[order(-PIP)]
 }
 ```
