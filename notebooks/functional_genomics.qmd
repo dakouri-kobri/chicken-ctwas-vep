@@ -244,7 +244,8 @@ build_gene_entry <- function(
     return(NULL)
   }
   
-  y <- as.numeric(gene_row[1, ..aligned$expr_cols])[aligned$idx_expr]
+  expr_cols <- aligned$expr_cols
+  y <- as.numeric(gene_row[1, ..expr_cols])[aligned$idx_expr]
   valid <- complete.cases(y, aligned$X)
   
   X_gene <- aligned$X[valide, , drop =FALSE]
