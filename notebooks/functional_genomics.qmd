@@ -250,7 +250,7 @@ build_gene_entry <- function(
   )[aligned$idx_expr]
   
   valid <- complete.cases(y, aligned$X)
-  X_gene <- aligned$X[valide, , drop = FALSE]
+  X_gene <- aligned$X[valid, , drop = FALSE]
   y_gene <- y[valid]
   
   
