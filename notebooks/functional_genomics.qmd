@@ -487,3 +487,28 @@ run_ctwas_locus_region <- function(
   results[order(-PIP)]
 }
 ```
+
+### 5.3 Check the function on one locus
+
+```{r}
+#| label: check-one-locus
+
+trial_result <- run_ctwas_locus_region(
+  target_trait = "X_MIDDLE_FG_2",
+  target_genes = "ENSGALG00010024904",  # ALS2CL
+  chr = "2",
+  start_pos = 3275060,
+  end_pos = 3282960,
+  gwas_zscore = gwas_zscore,
+  geno_dt = geno_dt,
+  expr_dt = expr_dt,
+  n_gwas_samples = 375,
+  group_prior_weights = NULL
+)
+
+trial_result
+```
+
+**Observation**
+
+The trial run returned PIPs for nine SNPs and one candidate gene in the selected locus. Several SNPs received high PIPs, whereas ALS2CL received a PIP of 0.065. The function therefore produces the expected output structure; these results will be interpreted alongside the remaining loci and the second pass.
