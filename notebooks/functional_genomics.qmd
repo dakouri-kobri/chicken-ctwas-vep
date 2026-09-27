@@ -708,3 +708,37 @@ pass1_results[
 **Observations**
 
 Pass 1 produced SNP and gene PIPs for all four selected loci using uniform priors. A gene had the highest PIP in two loci, although neither gene PIP exceeded 0.37. A SNP had the highest PIP in the other two loci, with PIPs of approximately 0.993 and 1.000. These are preliminary results because the GWAS sample size supplied to the model remains unverified.
+
+## 8. Estimate empirical group priors from pass 1
+
+```{r}
+#| label: estimate-empirical-group-priors
+
+empirical_prior <- pass1_results[
+  ,
+  .(
+    entries = .N,
+    mean_PIP = mean(PIP)
+  ),
+  by = Type
+]
+
+stopifnot(setequal(empirical_prior$Type, c("SNP", "Gene")))
+
+group_prior_weights <- setNames(
+  empirical_prior$mean_PIP,
+  empirical_prior$Type
+)
+
+# Keep a group with a zero or missing mean PIP eligible in pass 2.
+group_prior_weights[
+  !is.finite(group_prior_weights) | group_prior_weights <= 0
+] <- 0.01
+
+empirical_prior
+group_prior_weights
+```
+
+**Observations**
+
+Across the four pass 1 loci, the mean PIP was 0.212 for the four gene entries and 0.196 for the 45 SNP entries. These values provide slightly higher per-entry weight for genes in pass 2. Because they were estimated from only four selected loci, they are exploratory weights rather than independently calibrated cTWAS priors.
