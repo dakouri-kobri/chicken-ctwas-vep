@@ -245,10 +245,12 @@ build_gene_entry <- function(
   }
   
   expr_cols <- aligned$expr_cols
-  y <- as.numeric(gene_row[1, ..expr_cols])[aligned$idx_expr]
-  valid <- complete.cases(y, aligned$X)
+  y <- as.numeric(
+    unlist(gene_row[1, ..expr_cols], use.names = FALSE)
+  )[aligned$idx_expr]
   
-  X_gene <- aligned$X[valide, , drop =FALSE]
+  valid <- complete.cases(y, aligned$X)
+  X_gene <- aligned$X[valide, , drop = FALSE]
   y_gene <- y[valid]
   
   
@@ -288,6 +290,7 @@ build_gene_entry <- function(
   
   if (!is.finite(denominator) || denominator == 0){
     message(sprintf(" [skip] %s: degenerate weight normalization.", gene))
+    return(NULL)
   }
   
   z_snps <- z_sub[match(common_snps, id), z]
