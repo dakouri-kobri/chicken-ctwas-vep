@@ -18,11 +18,11 @@ library(susieR)
 ```{r}
 #| label: load-data
 
-expr_dt <- fread("data/student_trial_expression.txt")
-pheno_dt <- fread("data/phenotypes-20260429.txt")
-geno_dt <- fread("data/student_trial_genotypes.txt")
-gemma_gwas_dt <- fread("data/student_trial_gemma.txt")
-eqtl_dt <- fread("data/student_trial_eqtl.txt")
+expr_dt <- fread("../data/student_trial_expression.txt")
+pheno_dt <- fread("../data/phenotypes-20260429.txt")
+geno_dt <- fread("../data/student_trial_genotypes.txt")
+gemma_gwas_dt <- fread("../data/student_trial_gemma.txt")
+eqtl_dt <- fread("../data/student_trial_eqtl.txt")
 ```
 
 ## 3. Inspect and validate the input data
@@ -135,7 +135,7 @@ prep_gemma_zscores <- function(gemma_dt){
 }
 ```
 
-### 4.2 Inpect the resulting z-scores
+### 4.2 Inspect the resulting z-scores
 
 ```{r}
 #| label: inspect-zscores
@@ -920,3 +920,46 @@ snp_comparison[
 ### 11.2 Question 2: Do the rankings agree?
 
 The SNP with the smallest GEMMA p-value also had the highest pass 2 SNP PIP in two of the four loci. The rankings differed in both chromosome 4 loci. Most strikingly, 4:78065006 had the highest SNP PIP in its locus (displayed as 1.0000), although it ranked fourth by GWAS p-value. Thus, strong individual GWAS association did not consistently identify the SNP receiving the strongest fine-mapping support. GEMMA tests SNP associations individually, whereas fine-mapping considers the SNPs together with the candidate gene and their correlation structure.
+
+## 12. Examine gene-level support
+
+### 12.1 Compare gene and SNP PIPs within loci
+
+```{r}
+#| label: compare-gene-and-snp-support
+
+gene_support <- pass2_results[
+  Type == "Gene",
+  .(gene_ID = ID, gene_PIP = PIP),
+  by = .(Trait, Locus_Chr, Locus_Start, Locus_End)
+]
+
+snp_support <- pass2_results[
+  Type == "SNP",
+  .(
+    top_SNP = ID[which.max(PIP)],
+    top_SNP_PIP = max(PIP)
+  ),
+  by = .(Trait, Locus_Chr, Locus_Start, Locus_End)
+]
+
+locus_support <- merge(
+  gene_support,
+  snp_support,
+  by = c("Trait", "Locus_Chr", "Locus_Start", "Locus_End")
+)
+
+locus_support[
+  ,
+  .(
+    Trait, Locus_Chr, Locus_Start,
+    gene_ID, gene_PIP, top_SNP, top_SNP_PIP,
+    suggestive_gene_without_suggestive_SNP =
+      gene_PIP > 0.25 & top_SNP_PIP <= 0.25
+  )
+][order(Locus_Chr, Locus_Start)]
+```
+
+### 12.2 Question 3: Are there examples where a gene is significant in a given region but no SNPs are reliably flagged as causal? If so, what does this mean?
+
+No gene reached the walkthrough’s PIP \> 0.75 threshold for “significant” support. However, ENSGALG00010008087 and ENSGALG00010011018 each had a suggestive gene PIP (\> 0.25) without any SNP in its locus reaching 0.25. This suggests that the gene expression signal may capture support that is not assigned strongly to any individual SNP. It does not establish that either gene is causal: the result depends on the fine-mapping model, its priors, and the GWAS sample size used.
