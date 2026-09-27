@@ -856,3 +856,67 @@ pip_comparison[
 ### 10.2 Question 1: What changed?
 
 After applying the empirical group weights, the PIP increased for each of the four candidate genes by 0.0061–0.0188. Several SNP PIPs decreased slightly. The leading entry did not change in any of the four loci: ENSGALG00010008087 and ENSGALG00010011018 remained the leading genes in their respective loci, while 1:76750239 and 4:78065006 remained the leading SNPs in theirs. Because the weights were estimated from pass 1 using these same loci, the increases in gene PIP are a consequence of the prior adjustment, not independent evidence for the genes.
+
+## 11. Compare GWAS associations with fine-mapping
+
+### 11.1 Join GEMMA p-values to SNP PIPs
+
+```{r}
+#| label: join-gwas-pvalues-snp-pips
+
+gwas_for_comparison <- gemma_gwas_dt[
+  ,
+  .(
+    Trait,
+    ID = SNP_ID,
+    Chromosome = as.character(Chromosome),
+    Position,
+    PvalueLRT
+  )
+]
+
+snp_comparison <- merge(
+  pass2_results[
+    Type == "SNP",
+    .(
+      Trait, Locus_Chr, Locus_Start, Locus_End,
+      ID, PIP_pass2 = PIP
+    )
+  ],
+  gwas_for_comparison,
+  by = c("Trait", "ID"),
+  all.x = TRUE
+)
+
+# Confirm that all 45 fine-mapped SNPs found their GWAS record
+# and that each record belongs to the expected locus.
+stopifnot(
+  nrow(snp_comparison) == sum(pass2_results$Type == "SNP"),
+  !anyNA(snp_comparison$PvalueLRT),
+  all(snp_comparison$Chromosome == snp_comparison$Locus_Chr),
+  all(snp_comparison$Position >= snp_comparison$Locus_Start),
+  all(snp_comparison$Position <= snp_comparison$Locus_End)
+)
+
+snp_comparison[
+  ,
+  `:=`(
+    GWAS_rank = data.table::frank(PvalueLRT, ties.method = "min"),
+    PIP_rank = data.table::frank(-PIP_pass2, ties.method = "min")
+  ),
+  by = .(Trait, Locus_Chr, Locus_Start, Locus_End)
+]
+
+# Show the SNP leading by either measure in each locus.
+snp_comparison[
+  GWAS_rank == 1 | PIP_rank == 1,
+  .(
+    Trait, Locus_Chr, Locus_Start, ID,
+    PvalueLRT, GWAS_rank, PIP_pass2, PIP_rank
+  )
+][order(Locus_Chr, Locus_Start, GWAS_rank, PIP_rank)]
+```
+
+### 11.2 Question 2: Do the rankings agree?
+
+The SNP with the smallest GEMMA p-value also had the highest pass 2 SNP PIP in two of the four loci. The rankings differed in both chromosome 4 loci. Most strikingly, 4:78065006 had the highest SNP PIP in its locus (displayed as 1.0000), although it ranked fourth by GWAS p-value. Thus, strong individual GWAS association did not consistently identify the SNP receiving the strongest fine-mapping support. GEMMA tests SNP associations individually, whereas fine-mapping considers the SNPs together with the candidate gene and their correlation structure.
