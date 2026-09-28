@@ -963,3 +963,32 @@ locus_support[
 ### 12.2 Question 3: Are there examples where a gene is significant in a given region but no SNPs are reliably flagged as causal? If so, what does this mean?
 
 No gene reached the walkthrough’s PIP \> 0.75 threshold for “significant” support. However, ENSGALG00010008087 and ENSGALG00010011018 each had a suggestive gene PIP (\> 0.25) without any SNP in its locus reaching 0.25. This suggests that the gene expression signal may capture support that is not assigned strongly to any individual SNP. It does not establish that either gene is causal: the result depends on the fine-mapping model, its priors, and the GWAS sample size used.
+
+## 13. Annotate selected variants with VEP
+
+### 13.1 Select high- and low-PIP SNPs
+
+```{r}
+#| label: select-snps-for-vep
+
+vep_candidates <- pass2_results[
+  Type == "SNP",
+  {
+    selected <- c(which.max(PIP), which.min(PIP))
+    .(
+      selection = c("Highest SNP PIP", "Lowest SNP PIP"),
+      ID = ID[selected],
+      PIP = PIP[selected]
+    )
+  },
+  by = .(Trait, Locus_Chr, Locus_Start, Locus_End)
+]
+
+vep_candidates[
+  order(Locus_Chr, Locus_Start, -PIP)
+]
+```
+
+**Observations**
+
+“Highest” and “lowest” refer to the SNP PIPs within each locus. Only two selected SNPs exceed the walkthrough’s 0.75 threshold: 1:76750239 (PIP 0.9930) in the chromosome 1 locus starting at 76,741,609, and 4:78065006 (PIP displayed as 1.0000) in the chromosome 4 locus starting at 78,060,499.
