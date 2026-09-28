@@ -1065,3 +1065,21 @@ vep_alleles[
 **Observations**
 
 The genotype letters file contains allele calls for all eight final VEP candidates. Each has two observed bases. The lowest-PIP SNP originally selected in the locus starting at chromosome 4 position 78,060,499 was absent from that file, so 4:78060950 was selected as the lowest-PIP SNP with available allele calls.
+
+```{r}
+#| label: prepare-vep-position-check
+
+vep_alleles[
+  , c("Chromosome", "Position") := data.table::tstrsplit(
+    ID, ":", fixed = TRUE
+  )
+]
+vep_alleles[, Position := as.integer(Position)]
+
+vep_alleles[
+  order(Chromosome, Position),
+  .(ID, Chromosome, Position, selection, PIP, observed_alleles)
+]
+```
+
+Eight SNPs were selected for VEP annotation: the highest- and lowest-PIP SNP from each of four loci. Two exceeded the walkthrough’s PIP threshold of 0.75, while six were below it, allowing comparison of variants with strong and weaker fine-mapping support.\
