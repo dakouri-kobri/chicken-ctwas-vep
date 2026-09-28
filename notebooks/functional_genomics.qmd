@@ -992,3 +992,76 @@ vep_candidates[
 **Observations**
 
 “Highest” and “lowest” refer to the SNP PIPs within each locus. Only two selected SNPs exceed the walkthrough’s 0.75 threshold: 1:76750239 (PIP 0.9930) in the chromosome 1 locus starting at 76,741,609, and 4:78065006 (PIP displayed as 1.0000) in the chromosome 4 locus starting at 78,060,499.
+
+### 13.2 Verify alleles and genome assembly
+
+```{r}
+#| label: inspect-vep-candidate-alleles
+
+geno_letters_dt <- data.table::fread(
+  "../data/student_trial_genotypes_letters.txt"
+)
+
+# Identify candidates without allele calls.
+setdiff(vep_candidates$ID, geno_letters_dt$SNP)
+# Expected: "4:78062977"
+
+# Re-select the high- and low-PIP SNPs among variants
+# represented in the genotype letters file.
+vep_candidates <- pass2_results[
+  Type == "SNP" & ID %in% geno_letters_dt$SNP,
+  {
+    selected <- c(which.max(PIP), which.min(PIP))
+    .(
+      selection = c("Highest SNP PIP", "Lowest SNP PIP"),
+      ID = ID[selected],
+      PIP = PIP[selected]
+    )
+  },
+  by = .(Trait, Locus_Chr, Locus_Start, Locus_End)
+]
+
+stopifnot(
+  nrow(vep_candidates) == 8L,
+  all(vep_candidates$ID %in% geno_letters_dt$SNP)
+)
+
+allele_summary <- data.table::rbindlist(
+  lapply(vep_candidates$ID, function(snp) {
+    calls <- unlist(
+      geno_letters_dt[
+        SNP == snp,
+        setdiff(names(geno_letters_dt), "SNP"),
+        with = FALSE
+      ],
+      use.names = FALSE
+    )
+    
+    alleles <- sort(unique(unlist(
+      strsplit(calls[!is.na(calls)], "|", fixed = TRUE)
+    )))
+    
+    data.table::data.table(
+      ID = snp,
+      observed_alleles = paste(alleles, collapse = "/"),
+      n_observed_alleles = length(alleles)
+    )
+  })
+)
+
+vep_alleles <- merge(
+  vep_candidates,
+  allele_summary,
+  by = "ID",
+  all.x = TRUE
+)
+
+vep_alleles[
+  order(Locus_Chr, Locus_Start, -PIP),
+  .(ID, selection, PIP, observed_alleles, n_observed_alleles)
+]
+```
+
+**Observations**
+
+The genotype letters file contains allele calls for all eight final VEP candidates. Each has two observed bases. The lowest-PIP SNP originally selected in the locus starting at chromosome 4 position 78,060,499 was absent from that file, so 4:78060950 was selected as the lowest-PIP SNP with available allele calls.
