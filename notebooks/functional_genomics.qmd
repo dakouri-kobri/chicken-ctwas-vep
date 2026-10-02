@@ -1082,4 +1082,33 @@ vep_alleles[
 ]
 ```
 
-Eight SNPs were selected for VEP annotation: the highest- and lowest-PIP SNP from each of four loci. Two exceeded the walkthrough’s PIP threshold of 0.75, while six were below it, allowing comparison of variants with strong and weaker fine-mapping support.\
+Eight SNPs were selected for VEP annotation: the highest- and lowest-PIP SNP from each of four loci. Two exceeded the walkthrough’s PIP threshold of 0.75, while six were below it, allowing comparison of variants with strong and weaker fine-mapping support.
+
+### 13.3 Run Ensembl VEP and record the results
+
+#### VEP configuration
+
+Eight selected SNPs were submitted for annotation using the following settings.
+
+| Setting | Selected value |
+|------------------------------------|------------------------------------|
+| Species | Chicken (*Gallus gallus*) |
+| Genome entry | White Leghorn |
+| Assembly | `bGalGal1.mat.broiler.GRCg7b` |
+| Submission name | `ctwas_eight_snps_GRCg7b` |
+| Input format | Ensembl default: chromosome, start, end, REF/ALT, strand, variant name |
+| Distance to TSS | Enabled |
+| Nearest gene | Enabled, with Both directions selected |
+| Nearest exon junction boundary | Enabled |
+| Maximum exon junction search range | 10,000 bp |
+| Intronic boundary annotation | Enabled |
+| Protein ID | Enabled |
+| Gene Ontology | Enabled |
+| HGVS | Disabled |
+| SPDI | Disabled |
+| Up/downstream distance | Disabled |
+| Phenotypes | Disabled |
+
+For intronic variants, the boundary annotation reports the flanking exons without applying the 10,000-bp search limit.
+
+**Input assumptions:** The practical did not specify the dataset’s genome assembly, so `bGalGal1.mat.broiler.GRCg7b` was selected provisionally. Observed allele pairs were extracted from `student_trial_genotypes_letters.txt`; their REF/ALT order and the forward strand (`+`) were assumed rather than verified. The resulting annotations will therefore be interpreted as exploratory.
