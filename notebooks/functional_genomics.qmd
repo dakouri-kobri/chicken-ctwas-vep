@@ -1195,3 +1195,11 @@ These locations suggest possible mechanisms involving gene regulation or RNA pro
 VEP labeled the lower-PIP SNP `4:78060950` as synonymous in LYAR. None of the exported annotations reported a missense, stop-gained, frameshift, or splice-site consequence. Thus, the results provide functional context but no decisive additional evidence of causality.
 
 These conclusions remain provisional because the dataset’s assembly and the input REF/ALT order and strand were not verified.
+
+## 14. Reproducibility
+
+```{r}
+#| label: session-information
+
+sessionInfo()
+```
