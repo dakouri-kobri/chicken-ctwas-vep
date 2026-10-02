@@ -855,7 +855,7 @@ pip_comparison[
 
 ### 10.2 Question 1: What changed?
 
-After applying the empirical group weights, the PIP increased for each of the four candidate genes by 0.0061–0.0188. Several SNP PIPs decreased slightly. The leading entry did not change in any of the four loci: ENSGALG00010008087 and ENSGALG00010011018 remained the leading genes in their respective loci, while 1:76750239 and 4:78065006 remained the leading SNPs in theirs. Because the weights were estimated from pass 1 using these same loci, the increases in gene PIP are a consequence of the prior adjustment, not independent evidence for the genes.
+After applying the empirical group weights, the PIP increased for each of the four candidate genes by 0.0061–0.0188. Several SNP PIPs decreased slightly. The leading entry did not change in any of the four loci: ENSGALG00010008087 and ENSGALG00010011018 remained the leading genes in their respective loci, while 1:76750239 and 4:78065006 remained the leading SNPs in theirs. Because the weights were estimated from pass 1 using these same loci, the increases in gene PIP reflect rerunning the model with the adjusted priors, not independent evidence for the genes.
 
 ## 11. Compare GWAS associations with fine-mapping
 
@@ -1185,3 +1185,13 @@ vep_comparison[
   )
 ]
 ```
+
+#### Interpretation
+
+The two SNPs exceeding the walkthrough’s PIP threshold of 0.75 had noncoding annotations. SNP `1:76750239` (PIP ≈ 0.993) was intronic in FAM162A and upstream of CCDC58. SNP `4:78065006` (PIP ≈ 1.000) was intronic in LYAR and upstream of ZBTB49.
+
+These locations suggest possible mechanisms involving gene regulation or RNA processing, but the annotations do not demonstrate that either SNP affects those processes. Lower-PIP SNPs also received intronic and upstream annotations, so these broad consequence categories do not clearly distinguish the strongest fine-mapping candidates.
+
+VEP labeled the lower-PIP SNP `4:78060950` as synonymous in LYAR. None of the exported annotations reported a missense, stop-gained, frameshift, or splice-site consequence. Thus, the results provide functional context but no decisive additional evidence of causality.
+
+These conclusions remain provisional because the dataset’s assembly and the input REF/ALT order and strand were not verified.
